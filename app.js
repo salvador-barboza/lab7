@@ -6,7 +6,7 @@ const { BookStore } = require('./bookstore')
 
 const app = express()
 app.use(bodyParser.json())
-app.use(morgan())
+app.use(morgan('common'))
 app.use(apiMiddleware)
 
 app.get('/bookmarks', (request, response) => {
@@ -18,7 +18,7 @@ app.get('/bookmarks', (request, response) => {
     } else {
       const books = BookStore.getBooksByTitle(titleQueryParam)
       if (books.length < 1) {
-        return response.sendStatus(404)
+        return response.send(404).send("no bookmarks found")
       } else {
         return response.json({ books })
       }
@@ -27,7 +27,7 @@ app.get('/bookmarks', (request, response) => {
 
   const books = BookStore.getAllBooks()
   if (books.length < 1) {
-    return response.sendStatus(404)
+    return response.send(404).send("no bookmarks found")
   } else {
     return response.json({ books })
   }
@@ -36,7 +36,7 @@ app.get('/bookmarks', (request, response) => {
 app.post('/bookmarks', (request, response) => {
   const { title, description, url, rating } = request.body
   if (!title || !description || !url || !rating) {
-    return response.sendStatus(406)
+    return response.status(406).send("you must specify a title, description, url and rating to create a bookmark.")
   }
 
   const book = BookStore.addBook({ title, description, url, rating })
@@ -45,7 +45,7 @@ app.post('/bookmarks', (request, response) => {
 
 app.delete('/bookmarks/:id', (request, response) => {
   if (BookStore.getBooksById(request.params.id).length < 1) {
-    return response.sendStatus(404)
+    return response.status(404).send('this bookmark does not exist')
   }
 
   BookStore.deleteBook(request.params.id)
@@ -55,10 +55,14 @@ app.delete('/bookmarks/:id', (request, response) => {
 app.patch('/bookmarks/:id', (request, response) => {
   const { id, title, description, url, rating } = request.body
   if (!id) {
-    return response.sendStatus(406)
+    return response.status(406).send('you must specify the id of the bookmark you want to update')
   }
   if (id != request.params.id) {
-    return response.sendStatus(409)
+    return response.status(409).send('the id in the body and in the path must match')
+  }
+
+  if (BookStore.getBooksById(request.params.id).length < 1) {
+    return response.status(404).send('this bookmark does not exist')
   }
 
   const updatedBook = BookStore.updateBook(id, { title, description, url, rating })
@@ -67,4 +71,4 @@ app.patch('/bookmarks/:id', (request, response) => {
 
 })
 
-app.listen(3000)
+app.listen(3000, () => console.log('server is listening in port 3000'))
